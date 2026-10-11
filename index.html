@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Gestão Residencial — Moradia Estudantil Masculina</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #0b1329; color: #f8fafc; }
+  .fade-in { animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #0f172a; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-blue-600 selection:text-white">
+
+<!-- MODAL DE LOGIN -->
+<div id="authModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+  <div class="bg-slate-900 rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-800 text-white space-y-5">
+    <div class="text-center space-y-2">
+      <div class="w-14 h-14 bg-blue-600/20 border border-blue-500/30 rounded-2xl text-blue-400 flex items-center justify-center mx-auto shadow-inner">
+        <i data-lucide="building-2" class="w-8 h-8"></i>
+      </div>
+      <h2 class="text-xl sm:text-2xl font-black text-white">Moradia Masculina</h2>
+      <p class="text-xs text-slate-400">Acesso Restrito a Moradores e Representantes</p>
+    </div>
+
+    <div class="flex border-b border-slate-800 text-xs font-bold">
+      <button id="authTabLogin" onclick="switchAuthMode('login')" class="flex-1 py-2.5 text-center border-b-2 border-blue-500 text-blue-400">Entrar</button>
+      <button id="authTabRegister" onclick="switchAuthMode('register')" class="flex-1 py-2.5 text-center text-slate-400 hover:text-white">Novo Cadastro</button>
+    </div>
+
+    <form id="formLogin" onsubmit="handleLogin(event)" class="space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Matrícula</label>
+        <input type="text" id="loginMatricula" required placeholder="Ex: 2026001" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Senha</label>
+        <input type="password" id="loginSenha" required placeholder="••••••••" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none">
+      </div>
+      <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm rounded-xl transition">Acessar Sistema</button>
+    </form>
+
+    <form id="formRegister" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+      <div>
+        <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Código de Convite (Fornecido pelo Rep.) *</label>
+        <input type="text" id="regCodigoConvite" required placeholder="RESIDENCIA2026 ou REP2026" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 text-amber-300 font-mono font-bold rounded-xl text-sm outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Nome Completo *</label>
+        <input type="text" id="regNome" required class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Matrícula *</label>
+          <input type="text" id="regMatricula" required class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Ala e Quarto *</label>
+          <input type="text" id="regQuarto" required placeholder="Ala 01 - Q01" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none">
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Criar Senha *</label>
+        <input type="password" id="regSenha" required minlength="6" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none">
+      </div>
+      <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm rounded-xl transition">Concluir Cadastro</button>
+    </form>
+  </div>
+</div>
+
+<!-- CONTAINER PRINCIPAL -->
+<div id="appContainer" class="hidden w-full flex-1 flex flex-col">
+  <header class="bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 border-b border-slate-800 shadow-2xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <div class="p-3 bg-blue-600/20 border border-blue-500/30 rounded-2xl text-blue-400 shadow-inner">
+            <i data-lucide="building-2" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">Moradia Estudantil Masculina</h1>
+              <span id="userRoleBadge" class="bg-blue-900/80 text-blue-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-blue-700/60">Morador</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-3">
+            <div class="text-right">
+              <div id="headerUserName" class="text-xs font-bold text-slate-200">Usuário</div>
+              <div id="headerUserRoom" class="text-[10px] text-slate-400">Ala - / Quarto -</div>
+            </div>
+            <button onclick="logout()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-red-400 rounded-lg transition" title="Sair da Conta">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="flex space-x-1 sm:space-x-2 mt-6 border-b border-slate-800 pb-px overflow-x-auto text-xs sm:text-sm font-semibold">
+        <button data-tab="dashboard" class="nav-tab active flex items-center gap-2 px-4 py-3 rounded-t-xl transition border-b-2 border-blue-500 bg-blue-950/40 text-blue-400"><i data-lucide="layout-dashboard" class="w-4 h-4"></i><span>Painel Inicial</span></button>
+        <button data-tab="estoque" class="nav-tab flex items-center gap-2 px-4 py-3 rounded-t-xl transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"><i data-lucide="droplets" class="w-4 h-4"></i><span>Estoque e Água</span></button>
+        <button data-tab="documentos" class="nav-tab flex items-center gap-2 px-4 py-3 rounded-t-xl transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"><i data-lucide="folder-open" class="w-4 h-4"></i><span>Mural de Documentos</span></button>
+        <button data-tab="denuncias" class="nav-tab flex items-center gap-2 px-4 py-3 rounded-t-xl transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"><i data-lucide="shield-alert" class="w-4 h-4"></i><span>Reclamações & Infra.</span></button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- DASHBOARD -->
+    <section id="panel-dashboard" class="panel-content fade-in space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Galões de Água</span>
+          <div id="dashAgua" class="text-3xl font-black text-cyan-400 mt-2">0</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Reclamações</span>
+          <div id="dashRec" class="text-3xl font-black text-amber-400 mt-2">0</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Documentos Publicados</span>
+          <div id="dashDocs" class="text-3xl font-black text-emerald-400 mt-2">0</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ESTOQUE E ÁGUA -->
+    <section id="panel-estoque" class="panel-content hidden fade-in space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2 mb-1"><i data-lucide="droplets" class="w-5 h-5 text-cyan-400"></i> Controle de Estoque e Água</h2>
+        <p class="text-slate-400 text-sm">Acompanhamento dos insumos disponíveis na residência.</p>
+      </div>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- CARD ÁGUA -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg">
+          <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="glass-water" class="w-5 h-5 text-cyan-400"></i> Galões de Água (20L)</h3>
+          <div class="flex items-center gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <span id="txtAgua" class="text-2xl font-bold text-cyan-400 flex-1">0 unidades</span>
+            <div class="rep-only hidden flex items-center gap-2">
+              <button onclick="atualizarAgua(-1)" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white rounded font-bold transition">-</button>
+              <button onclick="atualizarAgua(1)" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white rounded font-bold transition">+</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- CARD PRODUTOS -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="package" class="w-5 h-5 text-indigo-400"></i> Produtos de Limpeza</h3>
+          </div>
+          <form id="formProduto" onsubmit="adicionarProduto(event)" class="rep-only hidden flex gap-2 mb-4">
+            <input type="text" id="prodNome" required placeholder="Nome do produto" class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 text-white rounded outline-none text-sm">
+            <input type="number" id="prodQtd" required min="1" placeholder="Qtd" class="w-16 px-2 py-2 bg-slate-800 border border-slate-700 text-white rounded outline-none text-sm text-center">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded text-sm font-bold transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+          </form>
+          <div id="listaProdutos" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+            <!-- Renderizado via JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MURAL DE DOCUMENTOS -->
+    <section id="panel-documentos" class="panel-content hidden fade-in space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="folder-open" class="w-5 h-5 text-emerald-400"></i> Mural de Documentos</h2>
+          <p class="text-slate-400 text-sm">Acesse regulamentos, rodízios de limpeza e prestações de contas da moradia.</p>
+        </div>
+      </div>
+
+      <div class="rep-only hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <h3 class="text-base font-bold text-white">Publicar Novo Arquivo PDF</h3>
+        <form id="formDocumento" onsubmit="handleSaveDocumento(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Tipo de Documento *</label>
+              <select id="docTipo" required class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none">
+                <option value="Prestação de Contas">Prestação de Contas</option>
+                <option value="Rodízio de Limpeza">Rodízio de Limpeza</option>
+                <option value="Regulamento">Regulamento da Moradia</option>
+                <option value="Outros">Outros Documentos</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Título / Mês de Referência *</label>
+              <input type="text" id="docTitulo" required placeholder="Ex: Outubro/2026 ou Limpeza Ala 2" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none">
+            </div>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-4 sm:items-end">
+            <div class="flex-1">
+              <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Link do Arquivo PDF (Google Drive/Dropbox) *</label>
+              <input type="url" id="docLink" required placeholder="https://..." class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none">
+            </div>
+            <button type="submit" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition">Publicar</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="listaDocumentos">
+        <!-- Renderizado via JS -->
+      </div>
+    </section>
+
+    <!-- RECLAMAÇÕES -->
+    <section id="panel-denuncias" class="panel-content hidden fade-in space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2 mb-1"><i data-lucide="shield-alert" class="w-5 h-5 text-amber-400"></i> Reclamações e Infraestrutura</h2>
+        <p class="text-slate-400 text-sm rep-only hidden">Visualização de reclamações de TODOS os moradores.</p>
+        <p class="text-slate-400 text-sm morador-only hidden">Visualização apenas das SUAS reclamações.</p>
+      </div>
+
+      <div class="morador-only hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <h3 class="text-base font-bold text-white">Registrar Novo Problema</h3>
+        <form id="formDenuncia" onsubmit="handleSaveDenuncia(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Tipo de Problema *</label>
+              <select id="denTipo" required class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none">
+                <option value="Infraestrutura">Problema de Infraestrutura</option>
+                <option value="Convivencia">Problema de Convivência</option>
+                <option value="Outros">Outros</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Título Resumido *</label>
+              <input type="text" id="denTitulo" required placeholder="Ex: Lâmpada queimada na Ala 2" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Descrição Detalhada *</label>
+            <textarea id="denDescricao" rows="3" required class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl text-sm outline-none"></textarea>
+          </div>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition">Enviar Registro</button>
+        </form>
+      </div>
+
+      <div class="space-y-3" id="listaDenuncias">
+        <!-- Renderizado via JS -->
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="fixed bottom-5 right-5 z-50 hidden transition-all">
+  <div class="bg-slate-800 border border-slate-600 text-white px-5 py-3 rounded-lg shadow-xl font-medium text-sm flex items-center gap-2">
+    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toastText">Feito!</span>
+  </div>
+</div>
+
+<script>
+// ==================== ESTADO E BANCO DE DADOS ====================
+const STORAGE_KEY = "moradia_db_v4"; // Atualizado para nova estrutura de documentos
+let state = {
+  currentUser: null,
+  users: [],
+  agua: 10,
+  produtos: [], 
+  documentos: [], // Substitui as antigas 'prestacoes'
+  denuncias: []
+};
+
+function initDB() {
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (data) {
+    const parsed = JSON.parse(data);
+    state.users = parsed.users || [];
+    state.agua = parsed.agua || 10;
+    state.produtos = parsed.produtos || [];
+    state.documentos = parsed.documentos || [];
+    state.denuncias = parsed.denuncias || [];
+  }
+}
+
+function saveDB() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    users: state.users,
+    agua: state.agua,
+    produtos: state.produtos,
+    documentos: state.documentos,
+    denuncias: state.denuncias
+  }));
+  updateDashboard();
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  document.getElementById("toastText").textContent = msg;
+  t.classList.remove("hidden");
+  setTimeout(() => t.classList.add("hidden"), 3000);
+}
+
+// ==================== AUTH ====================
+function switchAuthMode(mode) {
+  if (mode === 'login') {
+    document.getElementById("formLogin").classList.remove("hidden");
+    document.getElementById("formRegister").classList.add("hidden");
+    document.getElementById("authTabLogin").classList.add("border-b-2", "border-blue-500", "text-blue-400");
+    document.getElementById("authTabRegister").classList.remove("border-b-2", "border-blue-500", "text-blue-400");
+  } else {
+    document.getElementById("formLogin").classList.add("hidden");
+    document.getElementById("formRegister").classList.remove("hidden");
+    document.getElementById("authTabRegister").classList.add("border-b-2", "border-blue-500", "text-blue-400");
+    document.getElementById("authTabLogin").classList.remove("border-b-2", "border-blue-500", "text-blue-400");
+  }
+}
+
+function handleRegister(e) {
+  e.preventDefault();
+  const convite = document.getElementById("regCodigoConvite").value.trim().toUpperCase();
+  const matricula = document.getElementById("regMatricula").value.trim();
+  const nome = document.getElementById("regNome").value.trim();
+  const quarto = document.getElementById("regQuarto").value.trim();
+  const senha = document.getElementById("regSenha").value;
+
+  let role = "";
+  if (convite === "RESIDENCIA2026") role = "MORADOR";
+  else if (convite === "REP2026") role = "REPRESENTANTE";
+  else { showToast("Código de convite inválido!"); return; }
+
+  if (state.users.find(u => u.matricula === matricula)) {
+    showToast("Matrícula já cadastrada!"); return;
+  }
+
+  state.users.push({ matricula, nome, quarto, senha, role });
+  saveDB();
+  showToast("Cadastro realizado! Faça login.");
+  document.getElementById("formRegister").reset();
+  switchAuthMode('login');
+}
+
+function handleLogin(e) {
+  e.preventDefault();
+  const mat = document.getElementById("loginMatricula").value.trim();
+  const pwd = document.getElementById("loginSenha").value;
+  const user = state.users.find(u => u.matricula === mat && u.senha === pwd);
+
+  if (user) {
+    state.currentUser = user;
+    document.getElementById("authModal").classList.add("hidden");
+    document.getElementById("appContainer").classList.remove("hidden");
+    setupUIForRole();
+    switchTab('dashboard');
+    document.getElementById("formLogin").reset();
+  } else {
+    showToast("Matrícula ou senha incorretos!");
+  }
+}
+
+function logout() {
+  state.currentUser = null;
+  document.getElementById("appContainer").classList.add("hidden");
+  document.getElementById("authModal").classList.remove("hidden");
+}
+
+function setupUIForRole() {
+  const u = state.currentUser;
+  document.getElementById("headerUserName").textContent = u.nome;
+  document.getElementById("headerUserRoom").textContent = u.quarto;
+  document.getElementById("userRoleBadge").textContent = u.role;
+  document.getElementById("userRoleBadge").className = u.role === 'REPRESENTANTE' ? 'bg-amber-900 text-amber-300 text-xs font-bold px-2 py-0.5 rounded-full' : 'bg-blue-900 text-blue-300 text-xs font-bold px-2 py-0.5 rounded-full';
+
+  document.querySelectorAll(".rep-only").forEach(el => u.role === 'REPRESENTANTE' ? el.classList.remove("hidden") : el.classList.add("hidden"));
+  document.querySelectorAll(".morador-only").forEach(el => u.role === 'MORADOR' ? el.classList.remove("hidden") : el.classList.add("hidden"));
+}
+
+// ==================== TABS E MÓDULOS ====================
+function switchTab(tabId) {
+  document.querySelectorAll(".nav-tab").forEach(t => {
+    t.classList.remove("active", "border-b-2", "border-blue-500", "bg-blue-950/40", "text-blue-400");
+    t.classList.add("text-slate-400");
+    if(t.dataset.tab === tabId) t.classList.add("active", "border-b-2", "border-blue-500", "bg-blue-950/40", "text-blue-400");
+  });
+  document.querySelectorAll(".panel-content").forEach(p => p.classList.add("hidden"));
+  document.getElementById("panel-" + tabId).classList.remove("hidden");
+
+  if(tabId === 'dashboard') updateDashboard();
+  if(tabId === 'estoque') renderEstoque();
+  if(tabId === 'documentos') renderDocumentos();
+  if(tabId === 'denuncias') renderDenuncias();
+}
+
+document.querySelectorAll(".nav-tab").forEach(t => {
+  t.addEventListener("click", () => switchTab(t.dataset.tab));
+});
+
+function updateDashboard() {
+  document.getElementById("dashAgua").textContent = state.agua;
+  document.getElementById("dashRec").textContent = state.denuncias.length;
+  document.getElementById("dashDocs").textContent = state.documentos.length;
+}
+
+// ==================== ESTOQUE E ÁGUA ====================
+function renderEstoque() {
+  document.getElementById("txtAgua").textContent = state.agua + " unidades";
+  const container = document.getElementById("listaProdutos");
+  
+  if(state.produtos.length === 0) {
+    container.innerHTML = '<p class="text-slate-500 text-sm italic">Nenhum produto cadastrado no momento.</p>';
+  } else {
+    const isRep = state.currentUser && state.currentUser.role === 'REPRESENTANTE';
+    container.innerHTML = state.produtos.map(p => `
+      <div class="flex justify-between items-center p-3 bg-slate-950 border border-slate-800 rounded-lg">
+        <span class="text-sm font-medium text-slate-200">${p.nome}</span>
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-bold text-indigo-400">${p.qtd} un.</span>
+          ${isRep ? `
+            <div class="flex gap-1 ml-2 border-l border-slate-700 pl-3">
+              <button onclick="atualizarQtdProduto('${p.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-slate-800 text-white rounded hover:bg-slate-700 transition">-</button>
+              <button onclick="atualizarQtdProduto('${p.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-slate-800 text-white rounded hover:bg-slate-700 transition">+</button>
+              <button onclick="removerProduto('${p.id}')" class="w-6 h-6 flex items-center justify-center bg-red-900/50 text-red-400 rounded hover:bg-red-800 ml-1 transition" title="Excluir"><i data-lucide="trash" class="w-3 h-3"></i></button>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function atualizarAgua(delta) {
+  state.agua += delta;
+  if(state.agua < 0) state.agua = 0;
+  saveDB(); renderEstoque();
+}
+
+function adicionarProduto(e) {
+  e.preventDefault();
+  state.produtos.push({
+    id: "prod_" + Date.now(),
+    nome: document.getElementById("prodNome").value.trim(),
+    qtd: parseInt(document.getElementById("prodQtd").value)
+  });
+  saveDB(); document.getElementById("formProduto").reset(); renderEstoque(); showToast("Produto adicionado!");
+}
+
+function atualizarQtdProduto(id, delta) {
+  const prod = state.produtos.find(p => p.id === id);
+  if (prod) {
+    prod.qtd += delta;
+    if (prod.qtd < 0) prod.qtd = 0;
+    saveDB(); renderEstoque();
+  }
+}
+
+function removerProduto(id) {
+  if (confirm("Remover este produto da lista de estoque?")) {
+    state.produtos = state.produtos.filter(p => p.id !== id);
+    saveDB(); renderEstoque();
+  }
+}
+
+// ==================== MURAL DE DOCUMENTOS (ANTIGO PRESTAÇÕES) ====================
+function getDocColor(tipo) {
+  if(tipo === 'Prestação de Contas') return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
+  if(tipo === 'Rodízio de Limpeza') return 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20';
+  if(tipo === 'Regulamento') return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
+  return 'text-slate-300 bg-slate-700 border-slate-600';
+}
+
+function renderDocumentos() {
+  const container = document.getElementById("listaDocumentos");
+  if(state.documentos.length === 0) { container.innerHTML = '<p class="text-slate-500 col-span-3 italic">Nenhum documento publicado.</p>'; return; }
+  
+  const isRep = state.currentUser && state.currentUser.role === 'REPRESENTANTE';
+  
+  container.innerHTML = state.documentos.map(d => `
+    <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 text-center relative group flex flex-col justify-between">
+      ${isRep ? `<button onclick="excluirDocumento('${d.id}')" class="absolute top-2 right-2 p-1.5 bg-red-900/50 text-red-400 rounded hover:bg-red-800 transition opacity-0 group-hover:opacity-100"><i data-lucide="trash" class="w-3 h-3"></i></button>` : ''}
+      
+      <div>
+        <div class="inline-block px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-wider mb-4 ${getDocColor(d.tipo)}">
+          ${d.tipo}
+        </div>
+        <i data-lucide="file-text" class="w-10 h-10 mx-auto text-slate-300 mb-3"></i>
+        <h4 class="font-bold text-white mb-2 leading-tight">${d.titulo}</h4>
+        <p class="text-xs text-slate-400 mb-5">Publicado em: ${d.data}</p>
+      </div>
+
+      <a href="${d.link}" target="_blank" class="block w-full py-2.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
+        <i data-lucide="external-link" class="w-4 h-4"></i> Acessar Documento
+      </a>
+    </div>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function handleSaveDocumento(e) {
+  e.preventDefault();
+  state.documentos.unshift({
+    id: "doc_" + Date.now(),
+    tipo: document.getElementById("docTipo").value,
+    titulo: document.getElementById("docTitulo").value,
+    link: document.getElementById("docLink").value,
+    data: new Date().toLocaleDateString('pt-BR')
+  });
+  saveDB(); document.getElementById("formDocumento").reset(); renderDocumentos(); showToast("Documento Publicado!");
+}
+
+function excluirDocumento(id) {
+  if (confirm("Excluir este documento do mural?")) {
+    state.documentos = state.documentos.filter(d => d.id !== id);
+    saveDB(); renderDocumentos();
+  }
+}
+
+// ==================== RECLAMAÇÕES ====================
+function renderDenuncias() {
+  const container = document.getElementById("listaDenuncias");
+  let lista = state.currentUser.role === 'REPRESENTANTE' 
+    ? state.denuncias 
+    : state.denuncias.filter(d => d.matricula === state.currentUser.matricula);
+
+  if(lista.length === 0) { container.innerHTML = '<p class="text-slate-500 italic">Nenhum registro encontrado.</p>'; return; }
+
+  const isRep = state.currentUser && state.currentUser.role === 'REPRESENTANTE';
+
+  container.innerHTML = lista.map(d => `
+    <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 relative group">
+      ${isRep ? `<button onclick="excluirDenuncia('${d.id}')" class="absolute top-4 right-4 p-1.5 bg-red-900/50 text-red-400 rounded hover:bg-red-800 transition opacity-0 group-hover:opacity-100"><i data-lucide="trash" class="w-4 h-4"></i></button>` : ''}
+      <div class="flex justify-between items-start mb-2 pr-8">
+        <span class="text-xs font-bold text-amber-400 bg-amber-900/30 px-2 py-1 rounded border border-amber-900/50">${d.tipo}</span>
+        <span class="text-xs text-slate-500">${d.data}</span>
+      </div>
+      <h4 class="font-bold text-white mb-1">${d.titulo}</h4>
+      <p class="text-sm text-slate-400">${d.desc}</p>
+      ${isRep ? `<p class="text-xs text-blue-400 mt-3 font-mono bg-blue-950/30 inline-block px-2 py-1 rounded">Autor: ${d.nomeAutor} (${d.quarto})</p>` : ''}
+    </div>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function handleSaveDenuncia(e) {
+  e.preventDefault();
+  state.denuncias.unshift({
+    id: "den_" + Date.now(),
+    tipo: document.getElementById("denTipo").value,
+    titulo: document.getElementById("denTitulo").value,
+    desc: document.getElementById("denDescricao").value,
+    data: new Date().toLocaleDateString('pt-BR'),
+    matricula: state.currentUser.matricula,
+    nomeAutor: state.currentUser.nome,
+    quarto: state.currentUser.quarto
+  });
+  saveDB(); document.getElementById("formDenuncia").reset(); renderDenuncias(); showToast("Enviado com sucesso!");
+}
+
+function excluirDenuncia(id) {
+  if (confirm("Excluir esta reclamação permanentemente?")) {
+    state.denuncias = state.denuncias.filter(d => d.id !== id);
+    saveDB(); renderDenuncias();
+  }
+}
+
+// INICIALIZAÇÃO
+document.addEventListener("DOMContentLoaded", () => {
+  initDB();
+  if (window.lucide) lucide.createIcons();
+});
+</script>
+</body>
+</html>
